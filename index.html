@@ -189,70 +189,75 @@
       return pos;
     }
 
-    function nextWord(word) {
-      // 創建一個 PGraphics 對象來進行繪圖
-      let pg = createGraphics(width, height);
-      pg.background(255); // 設置背景
-      pg.fill(0); // 設置文字顏色
-      pg.textSize(90); // 設置文字大小
-      pg.textAlign(CENTER); // 設置文字對齊
-      let font = loadFont('Helvetica-Bold.ttf'); // 加載字體
-      pg.textFont(font);
-      pg.text(word, width / 2, height / 2); // 在畫布中央繪製文字
-      pg.loadPixels(); // 加載像素數據
+function nextWord(word) {
+  // 創建一個 PGraphics 對象來進行繪圖
+  let pg = createGraphics(width, height);
+  pg.background(255); // 設置背景
+  pg.fill(0); // 設置文字顏色
+  pg.textSize(90); // 設置文字大小
+  pg.textAlign(CENTER); // 設置文字對齊
 
-      // 設置新顏色
-      let newColor = color(random(0, 255), random(0, 255), random(0, 255));
+  // 使用 Google Fonts 字體
+  textFont('Roboto'); // 使用 Google Fonts 加載字體
+  
+  // 如果需要，這裡可以添加更多字體選項
+  // textFont('sans-serif'); // 如果無法加載網絡字體，會退回到系統默認字體
 
-      let particleCount = particles.length;
-      let particleIndex = 0;
+  pg.text(word, width / 2, height / 2); // 在畫布中央繪製文字
+  pg.loadPixels(); // 加載像素數據
 
-      // 收集坐標數據
-      let coordsIndexes = [];
-      for (let i = 0; i < (width * height) - 1; i += pixelSteps) {
-        coordsIndexes.push(i);
-      }
+  // 設置新顏色
+  let newColor = color(random(0, 255), random(0, 255), random(0, 255));
 
-      for (let i = 0; i < coordsIndexes.length; i++) {
-        let randomIndex = int(random(0, coordsIndexes.length));
-        let coordIndex = coordsIndexes[randomIndex];
-        coordsIndexes.splice(randomIndex, 1);
+  let particleCount = particles.length;
+  let particleIndex = 0;
 
-        if (pg.pixels[coordIndex * 4] != 255) { // 確認像素不是白色
-          let x = coordIndex % width;
-          let y = int(coordIndex / width);
+  // 收集坐標數據
+  let coordsIndexes = [];
+  for (let i = 0; i < (width * height) - 1; i += pixelSteps) {
+    coordsIndexes.push(i);
+  }
 
-          let newParticle;
+  for (let i = 0; i < coordsIndexes.length; i++) {
+    let randomIndex = int(random(0, coordsIndexes.length));
+    let coordIndex = coordsIndexes[randomIndex];
+    coordsIndexes.splice(randomIndex, 1);
 
-          if (particleIndex < particleCount) {
-            newParticle = particles[particleIndex];
-            newParticle.isKilled = false;
-            particleIndex++;
-          } else {
-            newParticle = new Particle();
-            let randomPos = generateRandomPos(width / 2, height / 2, (width + height) / 2);
-            newParticle.pos.set(randomPos);
-            newParticle.maxSpeed = random(2.0, 5.0);
-            newParticle.maxForce = newParticle.maxSpeed * 0.025;
-            newParticle.particleSize = random(3, 6);
-            newParticle.colorBlendRate = random(0.0025, 0.03);
-            particles.push(newParticle);
-          }
+    if (pg.pixels[coordIndex * 4] != 255) { // 確認像素不是白色
+      let x = coordIndex % width;
+      let y = int(coordIndex / width);
 
-          newParticle.startColor = lerpColor(newParticle.startColor, newParticle.targetColor, newParticle.colorWeight);
-          newParticle.targetColor = newColor;
-          newParticle.colorWeight = 0;
-          newParticle.target.set(x, y);
-        }
-      }
+      let newParticle;
 
       if (particleIndex < particleCount) {
-        for (let i = particleIndex; i < particleCount; i++) {
-          let particle = particles[i];
-          particle.kill();
-        }
+        newParticle = particles[particleIndex];
+        newParticle.isKilled = false;
+        particleIndex++;
+      } else {
+        newParticle = new Particle();
+        let randomPos = generateRandomPos(width / 2, height / 2, (width + height) / 2);
+        newParticle.pos.set(randomPos);
+        newParticle.maxSpeed = random(2.0, 5.0);
+        newParticle.maxForce = newParticle.maxSpeed * 0.025;
+        newParticle.particleSize = random(3, 6);
+        newParticle.colorBlendRate = random(0.0025, 0.03);
+        particles.push(newParticle);
       }
+
+      newParticle.startColor = lerpColor(newParticle.startColor, newParticle.targetColor, newParticle.colorWeight);
+      newParticle.targetColor = newColor;
+      newParticle.colorWeight = 0;
+      newParticle.target.set(x, y);
     }
+  }
+
+  if (particleIndex < particleCount) {
+    for (let i = particleIndex; i < particleCount; i++) {
+      let particle = particles[i];
+      particle.kill();
+    }
+  }
+}
 
   </script>
 </body>
