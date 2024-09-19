@@ -1,0 +1,256 @@
+<html>
+<head>
+  <title>Particles Text Effects</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      background-color: #000; /* 設定背景顏色為黑色 */
+    }
+    canvas {
+      display: block; /* 隱藏滾動條 */
+    }
+  </style>
+</head>
+<body>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.4.0/p5.js"></script>
+  <script>
+    // 定義一些全域變數
+    let particles = []; // 儲存粒子的陣列
+    let pixelSteps = 9; // 設定像素間距
+    let drawAsPoints = false; // 用來切換繪製方式
+    let words = []; // 儲存文字的陣列
+    let wordIndex = 0; // 追蹤目前的文字索引
+    let bgColor; // 背景顏色變數
+
+    function setup() {
+      createCanvas(1200, 400); // 創建畫布
+      bgColor = color(255, 100); // 設定背景顏色為半透明白色
+      // 添加要顯示的文字
+      words.push("🌕明月照滿中秋夜");
+      words.push("祝大家中秋節快樂🎉🍂");
+      words.push("團圓時光暖人心");
+      words.push("歡聚一堂樂無窮");
+      words.push("如花好月圓，幸福美滿長相伴");
+      words.push("月圓人圓，心中滿是喜悅💖😊");
+      nextWord(words[wordIndex]); // 顯示第一個文字
+    }
+
+    function draw() {
+      fill(bgColor); // 設定填充顏色
+      noStroke(); // 不描邊
+      rect(0, 0, width * 2, height * 2); // 繪製背景矩形
+
+      // 逐一處理每個粒子
+      for (let x = particles.length - 1; x > -1; x--) {
+        let particle = particles[x];
+        particle.move(); // 移動粒子
+        particle.draw(); // 繪製粒子
+
+        // 如果粒子超出邊界，將其移除
+        if (particle.isKilled) {
+          if (particle.pos.x < 0 || particle.pos.x > width || particle.pos.y < 0 || particle.pos.y > height) {
+            particles.splice(x, 1); // 移除粒子
+          }
+        }
+      }
+
+      fill(255 - red(bgColor)); // 設定提示文字顏色為背景顏色的對比色
+      textSize(9); // 設定提示文字大小
+      let tipText = `
+      左鍵點擊顯示下一個文字。
+      右鍵拖曳與粒子互動。
+      按任意鍵切換繪製方式。
+      Particles text effects
+      by Jason Labbe
+      CC Attribution ShareAlike
+      原始內容鏈接：http://openprocessing.org/sketch/377231
+      `;
+      
+      text(tipText, 10, height - 60); // 在畫布底部顯示提示文字
+      }
+
+    function mousePressed() {
+      if (mouseButton === LEFT) {
+        wordIndex++; // 切換到下一個文字
+        if (wordIndex > words.length - 1) {
+          wordIndex = 0; // 如果已到最後一個文字，返回到第一個
+        }
+        nextWord(words[wordIndex]); // 顯示新的文字
+      }
+    }
+
+    function mouseDragged() {
+      if (mouseButton === RIGHT) {
+        for (let particle of particles) {
+          if (dist(particle.pos.x, particle.pos.y, mouseX, mouseY) < 50) {
+            particle.kill(); // 如果粒子距離滑鼠位置小於50，將其「殺死」
+          }
+        }
+      }
+    }
+
+    function keyPressed() {
+      drawAsPoints = !drawAsPoints; // 切換繪製方式
+      if (drawAsPoints) {
+        background(0); // 黑色背景
+        bgColor = color(0, 40); // 半透明黑色背景
+      } else {
+        background(255); // 白色背景
+        bgColor = color(255, 100); // 半透明白色背景
+      }
+    }
+
+    class Particle {
+      constructor() {
+        this.pos = createVector(0, 0); // 粒子的位置
+        this.vel = createVector(0, 0); // 粒子的速度
+        this.acc = createVector(0, 0); // 粒子的加速度
+        this.target = createVector(0, 0); // 粒子的目標位置
+        this.closeEnoughTarget = 50; // 接近目標的距離
+        this.maxSpeed = random(2.0, 5.0); // 最大速度
+        this.maxForce = this.maxSpeed * 0.025; // 最大力
+        this.particleSize = random(3, 6); // 粒子的大小
+        this.isKilled = false; // 粒子是否被「殺死」
+        this.startColor = color(0); // 初始顏色
+        this.targetColor = color(0); // 目標顏色
+        this.colorWeight = 0; // 顏色漸變的權重
+        this.colorBlendRate = random(0.0025, 0.03); // 顏色漸變速率
+      }
+
+      move() {
+        let proximityMult = 1.0;
+        let distance = dist(this.pos.x, this.pos.y, this.target.x, this.target.y);
+        if (distance < this.closeEnoughTarget) {
+          proximityMult = distance / this.closeEnoughTarget;
+        }
+
+        let towardsTarget = createVector(this.target.x, this.target.y);
+        towardsTarget.sub(this.pos);
+        towardsTarget.normalize();
+        towardsTarget.mult(this.maxSpeed * proximityMult);
+
+        let steer = createVector(towardsTarget.x, towardsTarget.y);
+        steer.sub(this.vel);
+        steer.normalize();
+        steer.mult(this.maxForce);
+        this.acc.add(steer);
+
+        this.vel.add(this.acc);
+        this.pos.add(this.vel);
+        this.acc.mult(0);
+      }
+
+      draw() {
+        let currentColor = lerpColor(this.startColor, this.targetColor, this.colorWeight);
+        if (drawAsPoints) {
+          stroke(currentColor);
+          point(this.pos.x, this.pos.y);
+        } else {
+          noStroke();
+          fill(currentColor);
+          ellipse(this.pos.x, this.pos.y, this.particleSize, this.particleSize);
+        }
+
+        if (this.colorWeight < 1.0) {
+          this.colorWeight = min(this.colorWeight + this.colorBlendRate, 1.0);
+        }
+      }
+
+      kill() {
+        if (!this.isKilled) {
+          let randomPos = generateRandomPos(width / 2, height / 2, (width + height) / 2);
+          this.target.x = randomPos.x;
+          this.target.y = randomPos.y;
+
+          this.startColor = lerpColor(this.startColor, this.targetColor, this.colorWeight);
+          this.targetColor = color(0);
+          this.colorWeight = 0;
+
+          this.isKilled = true;
+        }
+      }
+    }
+
+    function generateRandomPos(x, y, mag) {
+      let randomDir = createVector(random(0, width), random(0, height));
+      let pos = createVector(x, y);
+      pos.sub(randomDir);
+      pos.normalize();
+      pos.mult(mag);
+      pos.add(x, y);
+      return pos;
+    }
+
+    function nextWord(word) {
+      // 創建一個 PGraphics 對象來進行繪圖
+      let pg = createGraphics(width, height);
+      pg.background(255); // 設置背景
+      pg.fill(0); // 設置文字顏色
+      pg.textSize(90); // 設置文字大小
+      pg.textAlign(CENTER); // 設置文字對齊
+      let font = loadFont('Helvetica-Bold.ttf'); // 加載字體
+      pg.textFont(font);
+      pg.text(word, width / 2, height / 2); // 在畫布中央繪製文字
+      pg.loadPixels(); // 加載像素數據
+
+      // 設置新顏色
+      let newColor = color(random(0, 255), random(0, 255), random(0, 255));
+
+      let particleCount = particles.length;
+      let particleIndex = 0;
+
+      // 收集坐標數據
+      let coordsIndexes = [];
+      for (let i = 0; i < (width * height) - 1; i += pixelSteps) {
+        coordsIndexes.push(i);
+      }
+
+      for (let i = 0; i < coordsIndexes.length; i++) {
+        let randomIndex = int(random(0, coordsIndexes.length));
+        let coordIndex = coordsIndexes[randomIndex];
+        coordsIndexes.splice(randomIndex, 1);
+
+        if (pg.pixels[coordIndex * 4] != 255) { // 確認像素不是白色
+          let x = coordIndex % width;
+          let y = int(coordIndex / width);
+
+          let newParticle;
+
+          if (particleIndex < particleCount) {
+            newParticle = particles[particleIndex];
+            newParticle.isKilled = false;
+            particleIndex++;
+          } else {
+            newParticle = new Particle();
+            let randomPos = generateRandomPos(width / 2, height / 2, (width + height) / 2);
+            newParticle.pos.set(randomPos);
+            newParticle.maxSpeed = random(2.0, 5.0);
+            newParticle.maxForce = newParticle.maxSpeed * 0.025;
+            newParticle.particleSize = random(3, 6);
+            newParticle.colorBlendRate = random(0.0025, 0.03);
+            particles.push(newParticle);
+          }
+
+          newParticle.startColor = lerpColor(newParticle.startColor, newParticle.targetColor, newParticle.colorWeight);
+          newParticle.targetColor = newColor;
+          newParticle.colorWeight = 0;
+          newParticle.target.set(x, y);
+        }
+      }
+
+      if (particleIndex < particleCount) {
+        for (let i = particleIndex; i < particleCount; i++) {
+          let particle = particles[i];
+          particle.kill();
+        }
+      }
+    }
+
+  </script>
+</body>
+</html>
